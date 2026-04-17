@@ -12,10 +12,6 @@ class CmsKonflik extends Component
     public $dataField = 'nama', $dataOrder = 'asc', $paginate = 10, $search = '';
 
 
-
-
-
-
     public function render()
     {
         $databases = [];

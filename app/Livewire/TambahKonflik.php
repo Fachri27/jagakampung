@@ -262,9 +262,9 @@ class TambahKonflik extends Component
 
         $this->searchPage = 1;
         $results = DB::connection('pgsql_gis')
-        ->table('proteus.POLITICAL_LEVEL_6_dissolved')
-        ->selectRaw('ST_AsGeoJSON(geom) as geom, "NAME" as name, latitude, longtitude')
-        ->where('NAME', 'ILIKE', '%' . $this->chooseRegion . '%')
+        ->table('proteus.mv_level_6_id')
+        ->select('geom', 'name', 'latitude', 'longtitude')
+        ->where('name', 'ILIKE', '%' . $this->chooseRegion . '%')
         ->skip(0)
         ->take(5)
         ->get();
@@ -281,9 +281,9 @@ class TambahKonflik extends Component
 
         $offset = $this->searchPage * 5;
         $moreResults = DB::connection('pgsql_gis')
-        ->table('proteus.POLITICAL_LEVEL_6_dissolved')
-        ->selectRaw('ST_AsGeoJSON(geom) as geom, "NAME" as name, latitude, longtitude')
-        ->where('NAME', 'ILIKE', '%' . $this->chooseRegion . '%')
+        ->table('proteus.mv_level_6_id')
+        ->select('geom', 'name', 'latitude', 'longtitude')
+        ->where('name', 'ILIKE', '%' . $this->chooseRegion . '%')
         ->skip($offset)
         ->take(5)
         ->get();

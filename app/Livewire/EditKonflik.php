@@ -63,7 +63,7 @@ class EditKonflik extends Component
 
 
         $geom = DB::connection('pgsql_gis')
-        ->table('proteus.POLITICAL_LEVEL_6_dissolved')
+        ->table('proteus.mv_level_6_id')
         ->selectRaw('ST_AsGeoJSON(geom) as geom')
         ->where('NAME', 'ILIKE', '%' . $this->chooseRegion . '%')
         ->first();
@@ -384,7 +384,7 @@ class EditKonflik extends Component
         }
 
         $this->administrasi = DB::connection('pgsql_gis')
-        ->table('proteus.POLITICAL_LEVEL_6_dissolved')
+        ->table('proteus.mv_level_6_id')
         ->selectRaw('ST_AsGeoJSON(geom) as geom, "NAME" as name, latitude, longtitude')
         ->where('NAME', 'ILIKE', '%' . $this->chooseRegion . '%')
         ->get();
