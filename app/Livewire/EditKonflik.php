@@ -39,6 +39,10 @@ class EditKonflik extends Component
 
 
         // dd($data);
+        // ponytail: IDOR guard — only the owner or an admin may edit this konflik
+        if ((int) session('role_id') !== 0 && (int) ($data->user_id ?? 0) !== (int) session('id')) {
+            abort(403, 'Anda tidak berhak mengedit konflik ini.');
+        }
         $this->provinsi = $data->provinsi;
         $this->kabkota = $data->kabkota;
         $this->kecamatan = $data->kecamatan;
@@ -112,6 +116,21 @@ class EditKonflik extends Component
     }
 
     public function storeDatabase(){
+        // ponytail: non-admins may never publish (mirrors TambahKonflik)
+        if ((int) session('role_id') !== 0) {
+            $this->selectedStatus = 'draft';
+        }
+        // ponytail: validate new image uploads (no mimes rule existed before)
+        $this->validate([
+            'newImages.*' => 'nullable|image|mimes:jpg,jpeg,png,webp',
+        ]);
+
+        // ponytail: re-check ownership on every save (mount's 403 only fires on first render; idDB is client-mutable)
+        $konflik = DB::table('konflik')->where('id', $this->idDB)->first();
+        if (! $konflik || ((int) session('role_id') !== 0 && (int) ($konflik->user_id ?? 0) !== (int) session('id'))) {
+            abort(403, 'Anda tidak berhak mengedit konflik ini.');
+        }
+
         if($this->manualValidation()){
             // Simpan data konflik
             $konflikId = DB::table('konflik')
