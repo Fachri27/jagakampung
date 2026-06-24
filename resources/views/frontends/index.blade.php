@@ -5,17 +5,21 @@
     <div class="sm:flex hidden" x-data="{ legend: true }">
 
         {{-- Left rail --}}
-        <div class="w-2/12 h-screen px-6 flex flex-col border-r border-gray-200">
-            <div class="w-full py-6 border-b border-gray-100">
+        <aside class="w-80 h-screen flex flex-col border-r border-gray-200 bg-white">
+
+            {{-- Brand --}}
+            <div class="flex-shrink-0 px-6 py-5 border-b border-gray-100">
                 <a href="#" class="text-xl font-semibold tracking-tight text-gray-900">
                     Jagakampung<span class="font-mono text-gray-400">.id</span>
                 </a>
-                <p class="mt-1 font-mono text-[10px] uppercase tracking-widest text-gray-400">Peta Konflik</p>
+                <p class="mt-1 font-mono text-[10px] uppercase tracking-widest text-gray-400">Peta Konflik Agraria</p>
             </div>
 
-            <div class="py-6">
+
+            {{-- Layers --}}
+            <div class="flex-shrink-0 px-6 py-5 border-b border-gray-100">
                 <p class="font-mono text-[10px] uppercase tracking-wider text-gray-400 mb-3">Layers</p>
-                <div class="flex flex-col ">
+                <div class="flex flex-col">
                     <x-checkbox idAttr="adminkabkota" layerName="administrative_boundaries">
                         {{ __('Titik Konflik') }}
                     </x-checkbox>
@@ -27,13 +31,70 @@
                     </x-checkbox>
                 </div>
             </div>
-        </div>
 
-        <div id="map" class="w-10/12 h-screen"></div>
+            {{-- Summary --}}
+            <div class="flex-shrink-0 px-6 py-5 border-b border-gray-100">
+                <p class="font-mono text-[10px] uppercase tracking-wider text-gray-400 mb-3">Ringkasan</p>
+                <div class="grid grid-cols-2 gap-px bg-gray-100 rounded-md overflow-hidden border border-gray-100">
+                    <div class="bg-white px-3 py-3">
+                        <p class="font-mono text-2xl text-gray-900 tabular-nums leading-none">{{ $stats['total'] }}</p>
+                        <p class="mt-1.5 text-[11px] text-gray-400">Titik konflik</p>
+                    </div>
+                    <div class="bg-white px-3 py-3">
+                        <p class="font-mono text-2xl text-gray-900 tabular-nums leading-none">{{ $stats['provinsi'] }}</p>
+                        <p class="mt-1.5 text-[11px] text-gray-400">Provinsi</p>
+                    </div>
+                    <div class="bg-white px-3 py-3">
+                        <p class="font-mono text-2xl text-gray-900 tabular-nums leading-none">{{ round($stats['luas'] / 1000) }}</p>
+                        <p class="mt-1.5 text-[11px] text-gray-400">Hektar terdampak</p>
+                    </div>
+                    <div class="bg-white px-3 py-3">
+                        <p class="font-mono text-2xl text-gray-900 tabular-nums leading-none">{{ (int) $stats['kk'] }}</p>
+                        <p class="mt-1.5 text-[11px] text-gray-400">KK terdampak</p>
+                    </div>
+                </div>
+
+
+            </div>
+
+
+
+            {{-- Conflict list --}}
+            <div class="flex-1 flex flex-col min-h-0">
+                <div class="flex-shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
+                    <p class="font-mono text-[10px] uppercase tracking-wider text-gray-400"> Konflik Terbaru</p>
+                    <span class="font-mono text-[10px] text-gray-300 tabular-nums">{{ count($konfliks) }}</span>
+                </div>
+                <div class="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
+                    @forelse ($konfliks as $k)
+                        <button type="button"
+                            onclick="focusKonflik({{ $k->id }}, {{ $k->lat }}, {{ $k->long }})"
+                            class="w-full text-left px-3 py-2.5 rounded-md hover:bg-gray-50 transition group">
+                            <div class="flex items-start gap-2.5">
+                                <span class="mt-1 w-2.5 h-2.5 rounded-full flex-shrink-0 {{ $k->status === 'aktif' ? 'bg-[#890620]' : 'bg-white border-[3px] border-[#348AA7]' }}"></span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-[13px] font-medium text-gray-900 truncate group-hover:text-gray-950">
+                                        {{ $k->desa ?: $k->kecamatan ?: $k->kabkota ?: 'Tanpa nama' }}
+                                    </p>
+                                    <p class="text-[11px] text-gray-400 truncate">{{ $k->kabkota }}{{ $k->provinsi ? ', '.$k->provinsi : '' }}</p>
+                                    <p class="mt-1 font-mono text-[10px] text-gray-400 tabular-nums">
+                                        {{ number_format($k->luas, 0, '.', ',') }} ha · {{ number_format($k->kk, 0, '.', ',') }} KK
+                                    </p>
+                                </div>
+                            </div>
+                        </button>
+                    @empty
+                        <p class="px-3 py-6 text-center text-xs text-gray-400">Belum ada data konflik.</p>
+                    @endforelse
+                </div>
+            </div>
+        </aside>
+
+        <div id="map" class="flex-1 h-screen"></div>
 
         {{-- Map Legend --}}
         <div
-            class="fixed ml-[100px] bottom-8 left-1/2 -translate-x-1/2 flex z-[9999] items-center gap-3 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full px-5 py-2.5 shadow-geist font-mono text-[11px] uppercase tracking-wider text-gray-600 select-none">
+            class="fixed bottom-8 left-[calc(50%+10rem)] -translate-x-1/2 flex z-[9999] items-center gap-3 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full px-5 py-2.5 shadow-geist font-mono text-[11px] uppercase tracking-wider text-gray-600 select-none">
 
             <button id="toggleAktif" class="legend-btn flex items-center gap-1.5 cursor-pointer">
                 <span class="w-3 h-3 rounded-full bg-[#890620] border-2 border-white shadow-sm inline-block"></span>

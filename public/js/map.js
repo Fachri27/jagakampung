@@ -36,6 +36,31 @@ window.closeSidebar = function () {
     overlay.style.pointerEvents = 'none';
 };
 
+// Fly to a konflik from the left-rail list and load its detail
+window.focusKonflik = function (id, lat, lng) {
+    map.setView([lat, lng], 12, { animate: true });
+    openSidebar();
+    showLoading();
+
+    fetch(`/cms/rest-map/${id}`)
+        .then(res => {
+            if (!res.ok) throw new Error('HTTP error ' + res.status);
+            return res.json();
+        })
+        .then(res => {
+            if (!res || !res.data) throw new Error('Data kosong');
+            renderSidebar(res);
+        })
+        .catch(err => {
+            console.error('Fetch error:', err);
+            sidebarContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12 px-8 text-center">
+                    <p class="text-sm font-medium text-gray-600">Gagal memuat data</p>
+                    <p class="text-xs text-gray-400 mt-1">ID: ${id} — ${err.message}</p>
+                </div>`;
+        });
+};
+
 // BASEMAP
 const baseLayers = [
     {
@@ -276,7 +301,7 @@ function renderSidebar(data) {
                     <div class="grid grid-cols-2 gap-2 mt-2">
                         <div class="bg-gray-50 rounded-xl px-3 py-2.5">
                             <div class="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Luas Ha</div>
-                            <div class="text-xs font-semibold text-gray-800">${data.data.atribut.luas ?? '—'}</div>
+                            <div class="text-xs font-semibold text-gray-800">${data.data.atribut.luas != null ? Math.round(Number(data.data.atribut.luas)).toLocaleString('en-US') : '—'}</div>
                         </div>
                         <div class="bg-gray-50 rounded-xl px-3 py-2.5">
                             <div class="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">KK</div>

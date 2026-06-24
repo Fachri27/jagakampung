@@ -12,7 +12,7 @@
         'potensi' => ['label' => 'Potensi', 'dot' => '#348AA7', 'text' => 'text-[#348AA7]', 'bg' => 'bg-[#348AA7]/8'],
         'draft'   => ['label' => 'Draft',   'dot' => '#605B51', 'text' => 'text-[#605B51]', 'bg' => 'bg-[#605B51]/8'],
     ];
-    $fmt = fn ($n) => number_format($n, 0, ',', '.');
+    $fmt = fn ($n) => number_format($n, 0, '.', ',');
 @endphp
 
 <div class="max-w-3xl px-4 mx-auto py-10">
@@ -27,7 +27,7 @@
             <span class="text-sm text-gray-500 pb-1.5">kasus tercatat</span>
         </div>
         <div class="mt-5 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-gray-600">
-            <span><span class="gk-mono font-semibold text-gray-900">{{ $fmt($stats['luas']) }}</span> ha lahan terdampak</span>
+            <span><span class="gk-mono font-semibold text-gray-900">{{ round($stats['luas'] / 1000) }}</span> ha lahan terdampak</span>
             <span><span class="gk-mono font-semibold text-gray-900">{{ $fmt($stats['kk']) }}</span> kepala keluarga</span>
         </div>
     </div>
