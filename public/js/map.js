@@ -312,7 +312,7 @@ function renderSidebar(data) {
                     <div class="grid grid-cols-2 gap-2 mt-2">
                         <div class="bg-gray-50 rounded-xl px-3 py-2.5">
                             <div class="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">Luas Ha</div>
-                            <div class="text-xs font-semibold text-gray-800">${data.data.atribut.luas != null ? Math.round(Number(data.data.atribut.luas)).toLocaleString('en-US') : '—'}</div>
+                            <div class="text-xs font-semibold text-gray-800">${data.data.atribut.luas != null ? Number(data.data.atribut.luas) : '—'}</div>
                         </div>
                         <div class="bg-gray-50 rounded-xl px-3 py-2.5">
                             <div class="text-[9px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">KK</div>

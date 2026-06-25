@@ -50,7 +50,7 @@
                 {{-- scale: land + people --}}
                 <div class="mt-5 pt-4 border-t border-gray-100 flex items-end gap-6">
                     <div>
-                        <p class="font-mono text-3xl text-gray-900 tabular-nums leading-none">{{ round($stats['luas'] / 1000) }}</p>
+                        <p class="font-mono text-3xl text-gray-900 tabular-nums leading-none">{{ round($stats['luas']) }}</p>
                         <p class="mt-1.5 text-[11px] text-gray-400">Hektar terdampak</p>
                     </div>
                     <div>
