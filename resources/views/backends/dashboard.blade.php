@@ -28,7 +28,7 @@
             <span class="text-sm text-gray-500 pb-1.5">kasus tercatat</span>
         </div>
         <div class="mt-5 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm text-gray-600">
-            <span><span class="gk-mono font-semibold text-gray-900">{{ round($stats['luas']) }}</span> ha lahan terdampak</span>
+            <span><span class="gk-mono font-semibold text-gray-900">{{ number_format(round($stats['luas']), 0, '.', ',') }}</span> ha lahan terdampak</span>
             <span><span class="gk-mono font-semibold text-gray-900">{{ $fmt($stats['kk']) }}</span> kepala keluarga</span>
         </div>
     </div>
