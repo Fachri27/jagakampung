@@ -350,6 +350,8 @@ class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:borde
 
             // ── Main sidebar renderer ─────────────────────────────────────────────
             function renderSidebar(data) {
+                const isAdmin = userRole === 0;
+                const canManage = isAdmin || data.data.user_id == userId;
                 const status = data.data.atribut.status;
                 const colors = {
                     aktif: { dot: 'var(--color-status-aktif)', bg: '#fef2f2', text: 'var(--color-status-aktif)' },
@@ -378,6 +380,7 @@ class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:borde
                             <p class="text-[11px] text-gray-400 truncate">${data.data.lokasi.provinsi}, ${data.data.lokasi.kabkota}</p>
                         </div>
                         <div class="flex-shrink-0 flex items-center gap-2">
+                            ${canManage ? `
                             <a href="${APP_URL}/cms/edit-konflik/${data.data.id}"
                                class="inline-flex items-center gap-1.5 text-[11px] font-medium border border-gray-200 hover:border-gray-700 hover:text-gray-900 text-gray-500 px-3 py-1.5 rounded-md transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
@@ -385,6 +388,8 @@ class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:borde
                                 </svg>
                                 Edit
                             </a>
+                            ` : ''}
+                            ${isAdmin ? `
                             <button type="button" onclick="deleteKonflik(${data.data.id})"
                                class="inline-flex items-center gap-1.5 text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors cursor-pointer">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
@@ -392,6 +397,7 @@ class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:borde
                                 </svg>
                                 Hapus
                             </button>
+                            ` : ''}
                         </div>
                     </div>
 
@@ -632,12 +638,6 @@ class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:borde
             };
 
             function registerMarker(feature, category, icon) {
-
-                {{-- kalo bukan user 0, tampilkan sesuai filter --}}
-                if(userRole != 0 && feature.properties.user_id != userId) {
-                    return;
-                }
-
                 const marker = new PruneCluster.Marker(
                     feature.properties.lat,
                     feature.properties.long, {

@@ -8,9 +8,18 @@ use Illuminate\Support\Facades\DB;
 class LocalServiceController extends Controller
 {
     public function index(){
-         $data =  DB::table('konflik')
-        ->select('id', 'lat', 'long', 'status', 'user_id')
-        ->get();
+        $query = DB::table('konflik')
+            ->select('id', 'lat', 'long', 'status', 'user_id');
+
+        // pengguna non-admin tidak boleh melihat konflik berstatus draft milik orang lain
+        if ((int) session('role_id') !== 0) {
+            $query->where(function ($q) {
+                $q->where('status', '!=', 'draft')
+                  ->orWhere('user_id', session('id'));
+            });
+        }
+
+        $data = $query->get();
 
         $original_data = json_decode($data, true);
         // dd($original_data);

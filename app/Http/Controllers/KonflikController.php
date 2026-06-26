@@ -33,8 +33,8 @@ class KonflikController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Data tidak ditemukan'], 404);
         }
 
-        // hanya admin atau pemilik data
-        if (session('role_id') != 0 && $konflik->user_id != session('id')) {
+        // hanya admin yang boleh menghapus data konflik
+        if ((int) session('role_id') !== 0) {
             return response()->json(['status' => 'error', 'message' => 'Tidak diizinkan menghapus data ini'], 403);
         }
 

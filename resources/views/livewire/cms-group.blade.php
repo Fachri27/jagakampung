@@ -36,7 +36,9 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end gap-2">
                             <a href="/cms/editgroup/{{ $group->id }}" class="gk-btn-secondary gk-btn-sm">Edit</a>
-                            <button wire:click="delete({{ $group->id }})" type="button" class="gk-btn-danger gk-btn-sm">Hapus</button>
+                            @if ((int) session('role_id') === 0)
+                                <button wire:click="delete({{ $group->id }})" type="button" class="gk-btn-danger gk-btn-sm">Hapus</button>
+                            @endif
                         </div>
                     </td>
                 </tr>

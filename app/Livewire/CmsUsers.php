@@ -30,6 +30,9 @@ class CmsUsers extends Component
         $this->deleteID = null;
     }
     public function delete($id){
+        if ((int) session('role_id') !== 0) {
+            abort(403, 'Akses terbatas untuk administrator.');
+        }
 
         //load data to delete function
         $dataDelete = DB::table('users')->where('id', $id)->first();
