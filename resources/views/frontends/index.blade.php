@@ -22,7 +22,7 @@
                     Jagakampung<span class="font-mono text-gray-500">.id</span>
                 </a>
                 <div class="mt-1.5 flex items-center gap-2">
-                    <span class="font-mono text-[10px] uppercase tracking-[0.18em] text-gray-400">Peta Konflik Agraria</span>
+                    <span class="font-mono text-[10px] uppercase tracking-[0.18em] text-gray-400">Peta Konflik </span>
                     <span class="relative flex h-1.5 w-1.5" title="Pemantau aktif">
                         <span class="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-[#b8324a] opacity-60"></span>
                         <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#b8324a]"></span>
@@ -115,7 +115,7 @@
             </div>
         </aside>
 
-        <div id="map" role="application" aria-label="Peta konflik agraria" class="flex-1 h-screen"></div>
+        <div id="map" role="application" aria-label="Peta konflik " class="flex-1 h-screen"></div>
 
         {{-- Map Legend --}}
         <div role="group" aria-label="Legenda status konflik"

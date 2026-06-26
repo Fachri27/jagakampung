@@ -93,7 +93,7 @@
         <a href="/" class="mt-2 block text-2xl font-semibold tracking-tight text-gray-900">
             Jagakampung<span class="font-mono text-gray-400">.id</span>
         </a>
-        <p class="mt-2 text-sm text-gray-500">Masuk untuk mengelola data konflik agraria.</p>
+        <p class="mt-2 text-sm text-gray-500">Masuk untuk mengelola data konflik .</p>
 
         @if (session()->has('error'))
             <div role="alert" class="mt-6 rounded-md border border-red-100 bg-red-50 px-3 py-2.5 text-xs text-red-600">
