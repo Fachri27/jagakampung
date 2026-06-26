@@ -34,13 +34,29 @@ window.closeSidebar = function () {
     sidebar.style.transform = "translateX(100%)";
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
+    updateSelectedKonflik(null);
 };
+
+function updateSelectedKonflik(id) {
+    const url = new URL(window.location.href);
+    if (id) {
+        url.searchParams.set('konflik', id);
+    } else {
+        url.searchParams.delete('konflik');
+    }
+    window.history.replaceState({}, '', url);
+}
+
+function getSelectedKonflik() {
+    return new URLSearchParams(window.location.search).get('konflik');
+}
 
 // Fly to a konflik from the left-rail list and load its detail
 window.focusKonflik = function (id, lat, lng) {
     map.setView([lat, lng], 12, { animate: true });
     openSidebar();
     showLoading();
+    updateSelectedKonflik(id);
 
     fetch(`/cms/rest-map/${id}?source=public`)
         .then(res => {
@@ -553,6 +569,7 @@ pruneCluster.PrepareLeafletMarker = function (leafletMarker, data) {
 
         openSidebar();
         showLoading();
+        updateSelectedKonflik(id);
 
         fetch(`/cms/rest-map/${id}?source=public`)
             .then((res) => {
@@ -584,10 +601,14 @@ pruneCluster.PrepareLeafletMarker = function (leafletMarker, data) {
 };
 
 // ── FETCH & TAMBAH MARKER KE PRUNE CLUSTER ────────────────────────────
+const initialSelectedId = getSelectedKonflik();
+
 fetch("/cms/rest-map/")
     .then((res) => res.json())
     .then((data) => {
         if (!data.features) return;
+
+        let selectedMarker = null;
 
         data.features.forEach((item) => {
             const lat = parseFloat(item.properties.lat);
@@ -606,6 +627,8 @@ fetch("/cms/rest-map/")
             // Simpan id di data marker untuk diakses saat klik
             marker.data.id = item.properties.id;
             marker.data.status = item.properties.status;
+            marker.data.lat = lat;
+            marker.data.lng = lng;
 
             pruneCluster.RegisterMarker(marker);
 
@@ -618,10 +641,42 @@ fetch("/cms/rest-map/")
                 marker.category = 1;
                 markersPotensi.push(marker);
             }
+
+            if (String(marker.data.id) === initialSelectedId) {
+                selectedMarker = marker;
+            }
         });
 
         // Tambahkan pruneCluster ke map setelah semua marker terdaftar
         map.addLayer(pruneCluster);
+
+        if (selectedMarker) {
+            map.setView([selectedMarker.data.lat, selectedMarker.data.lng], 12, { animate: true });
+            openSidebar();
+            showLoading();
+            fetch(`/cms/rest-map/${selectedMarker.data.id}?source=public`)
+                .then((res) => {
+                    if (!res.ok) throw new Error("HTTP error " + res.status);
+                    return res.json();
+                })
+                .then((res) => {
+                    if (!res || !res.data) throw new Error("Data kosong");
+                    renderSidebar(res);
+                })
+                .catch((err) => {
+                    console.error("Fetch error:", err);
+                    sidebarContent.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-12 px-8 text-center">
+                            <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <p class="text-sm font-medium text-gray-600">Gagal memuat data</p>
+                            <p class="text-xs text-gray-400 mt-1">ID: ${selectedMarker.data.id}, ${err.message}</p>
+                        </div>`;
+                });
+        }
     })
     .catch((err) => console.log(err));
 
