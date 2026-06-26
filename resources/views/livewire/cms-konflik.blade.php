@@ -36,7 +36,7 @@
     </div>
 
     {{-- Map --}}
-    <div role="application" aria-label="Peta konflik agraria" class="w-full h-[89vh] z-10 rounded-md" id="map" wire:ignore></div>
+    <div role="application" aria-label="Peta konflik " class="w-full h-[89vh] z-10 rounded-md" id="map" wire:ignore></div>
 
     {{-- Mobile backdrop --}}
     <div id="sidebarOverlay"
@@ -126,10 +126,27 @@
                             sidebar.style.transform = 'translateX(100%)';
                             overlay.style.opacity = '0';
                             overlay.style.pointerEvents = 'none';
+                            setSelectedKonflik(null);
                         };
+
+                        function setSelectedKonflik(id) {
+                            const url = new URL(window.location.href);
+                            if (id) {
+                                url.searchParams.set('konflik', id);
+                            } else {
+                                url.searchParams.delete('konflik');
+                            }
+                            window.history.replaceState({}, '', url);
+                        }
+
+                        function getSelectedKonflik() {
+                            const params = new URLSearchParams(window.location.search);
+                            return params.get('konflik');
+                        }
 
                         window.deleteKonflik = function(id) {
                             if (!confirm('Hapus data konflik ini? Tindakan ini tidak dapat dibatalkan.')) return;
+                            setSelectedKonflik(null);
                             fetch(`${APP_URL}/cms/konflik/${id}/delete`, {
                                 method: 'POST',
                                 headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
@@ -390,7 +407,7 @@ class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:borde
                             </a>
                             ` : ''}
                             ${isAdmin ? `
-                            <button type="button" onclick="deleteKonflik(${data.data.id})"
+                            <button type="button" onclick="deleteKonflik(${data.data.id})" data-id="${data.data.id}"
                                class="inline-flex items-center gap-1.5 text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors cursor-pointer">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
@@ -619,6 +636,7 @@ class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:borde
                 marker.on('click', function() {
                     openSidebar();
                     showLoading();
+                    setSelectedKonflik(data.idKasus);
                     fetch(`${APP_URL}/cms/rest-map/${data.idKasus}`)
                         .then(res => res.json())
                         .then(res => renderSidebar(res))
@@ -676,24 +694,57 @@ class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:borde
                 pruneCluster.ProcessView();
             }
 
+            // ── Restore from URL if available ─────────────────────────────────────
+            const selectedKonflikId = getSelectedKonflik();
+
             // ── Load GeoJSON ──────────────────────────────────────────────────────
             $.ajax({
                 type: 'GET',
                 url: APP_URL + '/cms/rest-map',
                 dataType: 'json',
                 success: function(data) {
+                    let selectedMarker = null;
+
                     L.geoJSON(data, {
                         onEachFeature: function(feature) {
+                            let marker;
                             if (feature.properties.status === 'aktif') {
-                                markersAktif.push(registerMarker(feature, 0, iconAktif));
+                                marker = registerMarker(feature, 0, iconAktif);
+                                markersAktif.push(marker);
                             } else if (feature.properties.status === 'potensi') {
-                                markersPotensi.push(registerMarker(feature, 1, iconPotensi));
+                                marker = registerMarker(feature, 1, iconPotensi);
+                                markersPotensi.push(marker);
                             } else if (feature.properties.status === 'draft') {
-                                markersDraft.push(registerMarker(feature, 2, iconDraft));
+                                marker = registerMarker(feature, 2, iconDraft);
+                                markersDraft.push(marker);
+                            }
+
+                            if (marker && String(feature.properties.id) === selectedKonflikId) {
+                                selectedMarker = marker;
                             }
                         }
                     });
                     map.addLayer(pruneCluster);
+
+                    if (selectedMarker) {
+                        openSidebar();
+                        showLoading();
+                        fetch(`${APP_URL}/cms/rest-map/${selectedMarker.data.idKasus}`)
+                            .then(res => res.json())
+                            .then(res => renderSidebar(res))
+                            .catch(() => {
+                                sidebarContent.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-12 px-8 text-center">
+                                <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <p class="text-sm font-medium text-gray-600">Gagal memuat data</p>
+                                <p class="text-xs text-gray-400 mt-1">Coba klik marker lagi</p>
+                            </div>`;
+                            });
+                    }
                 },
             });
 
