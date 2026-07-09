@@ -19,11 +19,8 @@ let isPotensiVisible = true;
 // Map untuk menyimpan marker berdasarkan koordinat (lat,lng string) - untuk cluster lookup
 const markersByCoord = {};
 
-// Cache semua konflik untuk pencarian koordinat
-let allKonflikData = [];
-
-// Track apakah marker sudah diklik (untuk menghindari konflik dengan map click)
-let markerClicked = false;
+// ID konflik yang sedang dipilih/fokus, untuk membesarkan marker-nya di peta
+let selectedKonflikId = null;
 
 // SIDEBAR
 const sidebar = document.getElementById("sidebar");
@@ -41,6 +38,7 @@ window.closeSidebar = function () {
     overlay.style.opacity = "0";
     overlay.style.pointerEvents = "none";
     updateSelectedKonflik(null);
+    selectKonflikMarker(null);
 };
 
 function updateSelectedKonflik(id) {
@@ -57,44 +55,43 @@ function getSelectedKonflik() {
     return new URLSearchParams(window.location.search).get("konflik");
 }
 
+// Besarkan marker konflik yang sedang difokus di peta (null = tidak ada)
+function selectKonflikMarker(id) {
+    selectedKonflikId = id != null ? String(id) : null;
+    pruneCluster.RedrawIcons();
+}
+
 // Fly to a konflik from the left-rail list and load its detail
 window.focusKonflik = function (id, lat, lng, skipClusterCheck) {
-    // Cek apakah ada beberapa konflik di koordinat yang sama (dengan tolerance kecil)
-    // Hanya cek jika skipClusterCheck = false (klik dari sidebar kiri)
+    // Cek apakah ada marker konflik lain yang berdekatan (koordinat sama persis
+    // ATAU cuma beberapa puluh meter, cukup dekat untuk jadi satu cluster visual
+    // di peta). Query langsung ke index spasial PruneCluster (marker terdaftar
+    // dengan posisi RENDER-nya, termasuk yang sudah di-jitter untuk duplikat
+    // persis) supaya hasilnya konsisten dengan cluster yang tampil di peta.
+    // Hanya cek jika skipClusterCheck = false (klik dari sidebar kiri).
     if (!skipClusterCheck) {
-        const nearbyConflicts = [];
-        const tolerance = 0.0001; // tolerance untuk perbedaan koordinat
-
-        allKonflikData.forEach((f) => {
-            const fLat = parseFloat(f.properties.lat);
-            const fLng = parseFloat(f.properties.long);
-            const status = (f.properties.status || "").toLowerCase();
-
-            // Cek apakah koordinat sama (dengan tolerance)
-            if (
-                (status === "aktif" || status === "potensi") &&
-                Math.abs(fLat - lat) < tolerance &&
-                Math.abs(fLng - lng) < tolerance
-            ) {
-                nearbyConflicts.push({
-                    id: f.properties.id,
-                    status: f.properties.status,
-                    lat: fLat,
-                    lng: fLng,
-                    desa: f.properties.desa,
-                    kecamatan: f.properties.kecamatan,
-                    kabkota: f.properties.kabkota,
-                    provinsi: f.properties.provinsi,
-                    luas: f.properties.luas,
-                    kk: f.properties.kk,
-                });
-            }
+        const margin = 0.0005; // ~55m, samakan dengan radius jitter marker duplikat
+        const nearbyMarkers = pruneCluster.Cluster.FindMarkersInArea({
+            minLat: lat - margin,
+            maxLat: lat + margin,
+            minLng: lng - margin,
+            maxLng: lng + margin,
         });
 
-        // Jika ada lebih dari satu konflik di lokasi yang sama, zoom dulu ke titiknya
-        // baru tampilkan pilihan (FIX: sebelumnya map.setView tidak pernah terpanggil
-        // di kasus ini karena ada `return` sebelum baris map.setView di bawah)
-        if (nearbyConflicts.length > 1) {
+        if (nearbyMarkers.length > 1) {
+            const nearbyConflicts = nearbyMarkers.map((m) => ({
+                id: m.data.id,
+                status: m.data.status,
+                lat: m.data.lat,
+                lng: m.data.lng,
+                desa: m.data.desa,
+                kecamatan: m.data.kecamatan,
+                kabkota: m.data.kabkota,
+                provinsi: m.data.provinsi,
+                luas: m.data.luas,
+                kk: m.data.kk,
+            }));
+
             map.setView([lat, lng], 18, { animate: true });
             setTimeout(() => {
                 showClusterKonflikList(nearbyConflicts, lat, lng);
@@ -106,6 +103,7 @@ window.focusKonflik = function (id, lat, lng, skipClusterCheck) {
     // Jika hanya satu konflik atau skipClusterCheck=true, langsung tampilkan detail
     // Zoom ke level 18 agar cluster "pecah" (level zoom tinggi menampilkan marker individu)
     map.setView([lat, lng], 18, { animate: true });
+    selectKonflikMarker(id);
 
     setTimeout(() => {
         openSidebar();
@@ -586,18 +584,34 @@ const iconPotensi = L.divIcon({
     html: `<div style="width:20px;height:20px;border-radius:50%;background:white;border:3px solid var(--color-status-potensi);box-shadow:0 1px 6px rgba(52,138,167,0.35);"></div>`,
 });
 
+// Versi lebih besar untuk marker yang sedang difokus/dipilih (dari sidebar
+// atau dari daftar pilihan cluster), supaya mudah dikenali di peta
+const iconAktifSelected = L.divIcon({
+    className: "",
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -18],
+    html: `<div style="width:30px;height:30px;border-radius:50%;background:var(--color-status-aktif);border:3.5px solid white;box-shadow:0 2px 10px rgba(137,6,32,0.6);"></div>`,
+});
+const iconPotensiSelected = L.divIcon({
+    className: "",
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -18],
+    html: `<div style="width:30px;height:30px;border-radius:50%;background:white;border:4.5px solid var(--color-status-potensi);box-shadow:0 2px 10px rgba(52,138,167,0.5);"></div>`,
+});
+
 // PrepareLeafletMarker dipanggil untuk setiap marker individual (bukan cluster)
 // Kita override ini untuk menambahkan click handler pada marker
 pruneCluster.PrepareLeafletMarker = function (leafletMarker, data) {
     const status = data.status?.toLowerCase();
+    const isSelected = String(data.id) === String(selectedKonflikId);
     let icon;
 
     if (status === "aktif") {
-        icon = iconAktif;
-    } else if (status === "potensi") {
-        icon = iconPotensi;
+        icon = isSelected ? iconAktifSelected : iconAktif;
     } else {
-        icon = iconPotensi;
+        icon = isSelected ? iconPotensiSelected : iconPotensi;
     }
 
     leafletMarker.setIcon(icon);
@@ -609,11 +623,11 @@ pruneCluster.PrepareLeafletMarker = function (leafletMarker, data) {
     }
 
     leafletMarker._konflikClickBound = function () {
-        markerClicked = true; // Set flag untuk mencegah map click menangani ini
         console.log("Marker klik, id:", id);
         openSidebar();
         showLoading();
         updateSelectedKonflik(id);
+        selectKonflikMarker(id);
 
         fetch(`/cms/rest-map/${id}?source=public`)
             .then((res) => {
@@ -667,6 +681,10 @@ function showClusterKonflikList(clusterMarkers, originalLat, originalLng) {
                         return `
                     <button type="button"
                         onclick="pickKonflik(${m.id})"
+                        onmouseenter="selectKonflikMarker(${m.id})"
+                        onmouseleave="selectKonflikMarker(null)"
+                        onfocus="selectKonflikMarker(${m.id})"
+                        onblur="selectKonflikMarker(null)"
                         class="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-50 focus-visible:bg-gray-50 transition group">
                         <span aria-hidden="true" class="w-2 h-2 rounded-full flex-shrink-0 ${isAktif ? "bg-status-aktif" : "bg-status-potensi"}"></span>
                         <span class="min-w-0 flex-1">
@@ -704,6 +722,7 @@ function pickKonflik(id) {
     openSidebar();
     showLoading();
     updateSelectedKonflik(id);
+    selectKonflikMarker(id);
     fetch(`/cms/rest-map/${id}?source=public`)
         .then((res) => {
             if (!res.ok) throw new Error("HTTP error " + res.status);
@@ -725,32 +744,36 @@ function pickKonflik(id) {
 
 // ── FETCH & TAMBAW MARKER KE PRUNE CLUSTER ────────────────────────────
 const initialSelectedId = getSelectedKonflik();
+selectedKonflikId = initialSelectedId;
 
 fetch("/cms/rest-map/")
     .then((res) => res.json())
     .then((data) => {
         if (!data.features) return;
 
-        // Simpan semua data untuk lookup koordinat di focusKonflik
-        allKonflikData = data.features;
-
         let selectedMarker = null;
 
-        // ── Deteksi koordinat yang sama persis (konflik "double") ──────
-        // PruneCluster mengelompokkan marker berdasarkan jarak PIKSEL di peta.
-        // Kalau dua konflik punya lat/lng yang PERSIS sama, jarak piksel di
-        // antara keduanya akan selalu 0 di zoom berapa pun — jadi cluster-nya
-        // TIDAK PERNAH bisa pecah walau sudah di-zoom sampai level 18.
-        // Fix: sebar sedikit (jitter) posisi VISUAL marker yang koordinatnya
-        // identik dalam radius kecil (~55m). Di zoom jauh, jarak ini masih
-        // kecil secara piksel sehingga tetap tergabung jadi satu cluster
-        // (tidak mengubah tampilan biasa). Di zoom 18 (saat cluster diklik
-        // atau salah satu konflik dipilih dari daftar), jarak ini sudah
-        // cukup besar secara piksel sehingga marker terpisah dan cluster
-        // benar-benar pecah. Data asli (lat/lng, info lokasi, dst) tetap
-        // disimpan utuh di marker.data, jadi tidak memengaruhi fetch detail
-        // maupun tampilan koordinat di sidebar.
-        const coordGroups = {};
+        // ── Kelompokkan konflik yang berdekatan (persis sama ATAU cuma
+        // beberapa puluh meter) ──────────────────────────────────────
+        // PruneCluster mengelompokkan marker berdasarkan jarak PIKSEL di peta,
+        // dan makin di-zoom, radius itu makin kecil dalam meter (di zoom 18
+        // sekitar 30m). Kalau dua konflik jaraknya lebih dekat dari itu,
+        // mereka TETAP jadi satu bubble cluster walau sudah di-zoom maksimal —
+        // tidak pernah pecah jadi marker individual, jadi tidak bisa
+        // dipilih/di-hover satu-satu dari daftar "Pilih Konflik".
+        // Fix: sebar sedikit (jitter) posisi VISUAL semua marker yang saling
+        // berdekatan dalam radius kecil (~55m) — mencakup baik koordinat
+        // persis sama maupun yang cuma berdekatan. Di zoom jauh, jarak ini
+        // masih kecil secara piksel sehingga tetap tergabung jadi satu
+        // cluster (tidak mengubah tampilan biasa). Di zoom 18 (saat cluster
+        // diklik atau salah satu konflik dipilih dari daftar), jarak ini
+        // sudah cukup besar secara piksel sehingga marker terpisah dan
+        // cluster benar-benar pecah. Data asli (lat/lng, info lokasi, dst)
+        // tetap disimpan utuh di marker.data, jadi tidak memengaruhi fetch
+        // detail maupun tampilan koordinat di sidebar.
+        const groupRadiusDeg = 0.0005; // ~55m, samakan dengan margin di focusKonflik
+        const groups = [];
+        const itemGroup = new Map();
         data.features.forEach((item) => {
             const lat = parseFloat(item.properties.lat);
             const lng = parseFloat(item.properties.long);
@@ -758,9 +781,19 @@ fetch("/cms/rest-map/")
             const status = item.properties.status?.toLowerCase();
             if (status !== "aktif" && status !== "potensi") return;
 
-            const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-            if (!coordGroups[key]) coordGroups[key] = [];
-            coordGroups[key].push(item);
+            const group = groups.find(
+                (g) =>
+                    Math.abs(g.lat - lat) < groupRadiusDeg &&
+                    Math.abs(g.lng - lng) < groupRadiusDeg,
+            );
+            if (group) {
+                group.items.push(item);
+                itemGroup.set(item, group);
+            } else {
+                const newGroup = { lat, lng, items: [item] };
+                groups.push(newGroup);
+                itemGroup.set(item, newGroup);
+            }
         });
 
         data.features.forEach((item) => {
@@ -774,17 +807,15 @@ fetch("/cms/rest-map/")
             // hanya tampil aktif
             if (status !== "aktif" && status !== "potensi") return;
 
-            // Cek apakah item ini berbagi koordinat persis dengan item lain
-            const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-            const group = coordGroups[key];
+            const group = itemGroup.get(item);
 
             let markerLat = lat;
             let markerLng = lng;
 
-            if (group.length > 1) {
-                const posInGroup = group.indexOf(item);
+            if (group.items.length > 1) {
+                const posInGroup = group.items.indexOf(item);
                 const radiusDeg = 0.0005; // ~55m, cukup agar terpisah di zoom 18
-                const angle = (2 * Math.PI * posInGroup) / group.length;
+                const angle = (2 * Math.PI * posInGroup) / group.items.length;
                 markerLat = lat + radiusDeg * Math.cos(angle);
                 markerLng = lng + radiusDeg * Math.sin(angle);
             }
@@ -832,45 +863,32 @@ fetch("/cms/rest-map/")
         // Tambahkan pruneCluster ke map setelah semua marker terdaftar
         map.addLayer(pruneCluster);
 
-        // Event click pada map untuk mendeteksi cluster click dari peta
-        // Karena PruneCluster tidak memiliki event khusus untuk cluster, kita pakai map.on('click')
-        // dan deteksi apakah click adalah pada cluster dengan population > 1
-        map.on("click", function (e) {
-            // Jika marker sudah diklik, skip (marker click sudah dihandle oleh PrepareLeafletMarker)
-            if (markerClicked) {
-                markerClicked = false;
-                return;
-            }
+        // PruneCluster sudah menangani klik pada icon cluster sendiri (zoom/fitBounds
+        // ke area cluster). Saat cluster tidak bisa di-zoom lebih jauh lagi (markernya
+        // sudah saling tumpang tindih di zoom itu), ia menembak event 'overlappingmarkers'
+        // di map — di situlah kita tampilkan daftar pilihan konfliknya.
+        // (Catatan: pruneCluster.Cluster.FindClosest yang dipakai sebelumnya bukan API
+        // yang ada di library ini, jadi klik cluster tidak pernah terdeteksi.)
+        map.on("overlappingmarkers", function (e) {
+            const clusterConflicts = e.markers.map((m) => ({
+                id: m.data.id,
+                status: m.data.status,
+                lat: m.data.lat,
+                lng: m.data.lng,
+                desa: m.data.desa,
+                kecamatan: m.data.kecamatan,
+                kabkota: m.data.kabkota,
+                provinsi: m.data.provinsi,
+                luas: m.data.luas,
+                kk: m.data.kk,
+            }));
 
-            // Cek apakah yang diklik adalah cluster dengan mencari marker terdekat
-            const cluster = pruneCluster.Cluster.FindClosest(e.latlng, 10);
-            if (cluster && cluster.population > 1) {
-                // Ini cluster - ambil data konflik LANGSUNG dari marker.data
-                // di dalam cluster (koordinat ASLI, bukan posisi hasil jitter),
-                // supaya tidak perlu lagi mencocokkan lewat posKey yang bisa
-                // meleset karena marker duplikat koordinat sudah digeser sedikit.
-                const clusterConflicts = cluster.markers.map((m) => ({
-                    id: m.data.id,
-                    status: m.data.status,
-                    lat: m.data.lat,
-                    lng: m.data.lng,
-                    desa: m.data.desa,
-                    kecamatan: m.data.kecamatan,
-                    kabkota: m.data.kabkota,
-                    provinsi: m.data.provinsi,
-                    luas: m.data.luas,
-                    kk: m.data.kk,
-                }));
-
-                // Zoom ke titik cluster dulu baru tampilkan daftar pilihan
-                map.setView(e.latlng, 18, { animate: true });
-                setTimeout(() => {
-                    showClusterKonflikList(
-                        clusterConflicts,
-                        e.latlng.lat,
-                        e.latlng.lng,
-                    );
-                }, 300);
+            if (clusterConflicts.length > 1) {
+                showClusterKonflikList(
+                    clusterConflicts,
+                    e.center.lat,
+                    e.center.lng,
+                );
             }
         });
 

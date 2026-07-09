@@ -195,5 +195,5 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/map.js') }} "></script>
+    <script src="{{ asset('js/map.js') }}?v={{ filemtime(public_path('js/map.js')) }}"></script>
 @endpush
