@@ -438,47 +438,49 @@ function renderSidebar(data) {
     sidebarContent.innerHTML = `
         <div x-data="{ tab: 'general' }">
 
-            <div class="px-5 pt-4 pb-3 border-b border-gray-100 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span style="background:${c.bg};color:${c.text};"
-                              class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full flex-shrink-0">
-                            <span style="width:5px;height:5px;border-radius:50%;background:${c.dot};display:inline-block;flex-shrink:0;"></span>
-                            ${esc(status)}
-                        </span>
+            <div class="sticky top-0 z-10 bg-white">
+                <div class="px-5 pt-4 pb-3 border-b border-gray-100 flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span style="background:${c.bg};color:${c.text};"
+                                  class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full flex-shrink-0">
+                                <span style="width:5px;height:5px;border-radius:50%;background:${c.dot};display:inline-block;flex-shrink:0;"></span>
+                                ${esc(status)}
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 truncate">${esc(data.data.lokasi.provinsi)} &mdash; ${esc(data.data.lokasi.kabkota)}</p>
                     </div>
-                    <p class="text-[11px] text-gray-400 truncate">${esc(data.data.lokasi.provinsi)} &mdash; ${esc(data.data.lokasi.kabkota)}</p>
                 </div>
-            </div>
 
-            <div class="flex gap-0 border-b border-gray-100 bg-gray-50/60 px-5">
-                <button @click="tab = 'general'"
-                        :class="tab === 'general' ? 'border-b-2 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'"
-                        style="border-color:${borderColor}"
-                        class="py-3 px-1 mr-5 text-xs transition focus:outline-none cursor-pointer">
-                    Informasi
-                </button>
-                <button @click="tab = 'lampiran'"
-                        :class="tab === 'lampiran' ? 'border-b-2 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'"
-                        style="border-color:${borderColor}"
-                        class="py-3 px-1 mr-5 text-xs transition focus:outline-none cursor-pointer flex items-center gap-1.5">
-                    Lampiran
-                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="${badgeStyle}">${totalLamp}</span>
-                </button>
-                <button @click="tab = 'media'"
-                        :class="tab === 'media' ? 'border-b-2 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'"
-                        style="border-color:${borderColor}"
-                        class="py-3 px-1 mr-5 text-xs transition focus:outline-none cursor-pointer flex items-center gap-1.5">
-                    Media
-                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="${badgeStyle}">${totalMedia}</span>
-                </button>
-                <button @click="tab = 'artikel'"
-                        :class="tab === 'artikel' ? 'border-b-2 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'"
-                        style="border-color:${borderColor}"
-                        class="py-3 px-1 text-xs transition focus:outline-none cursor-pointer">
-                    Artikel
-                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="${badgeStyle}">${totalArtikel}</span>
-                </button>
+                <div class="flex gap-0 border-b border-gray-100 bg-gray-50/60 px-5">
+                    <button @click="tab = 'general'"
+                            :class="tab === 'general' ? 'border-b-2 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'"
+                            style="border-color:${borderColor}"
+                            class="py-3 px-1 mr-5 text-xs transition focus:outline-none cursor-pointer">
+                        Informasi
+                    </button>
+                    <button @click="tab = 'lampiran'"
+                            :class="tab === 'lampiran' ? 'border-b-2 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'"
+                            style="border-color:${borderColor}"
+                            class="py-3 px-1 mr-5 text-xs transition focus:outline-none cursor-pointer flex items-center gap-1.5">
+                        Lampiran
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="${badgeStyle}">${totalLamp}</span>
+                    </button>
+                    <button @click="tab = 'media'"
+                            :class="tab === 'media' ? 'border-b-2 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'"
+                            style="border-color:${borderColor}"
+                            class="py-3 px-1 mr-5 text-xs transition focus:outline-none cursor-pointer flex items-center gap-1.5">
+                        Media
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="${badgeStyle}">${totalMedia}</span>
+                    </button>
+                    <button @click="tab = 'artikel'"
+                            :class="tab === 'artikel' ? 'border-b-2 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-600'"
+                            style="border-color:${borderColor}"
+                            class="py-3 px-1 text-xs transition focus:outline-none cursor-pointer">
+                        Artikel
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="${badgeStyle}">${totalArtikel}</span>
+                    </button>
+                </div>
             </div>
 
             <div x-show="tab === 'general'" class="px-5 py-4 space-y-5">
