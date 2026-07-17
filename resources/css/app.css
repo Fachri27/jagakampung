@@ -117,3 +117,40 @@
 .sidebar-open {
     transform: translateX(0) !important;
 }
+
+/* Map cursor — pointer only while actually hovering a queryable WMS feature */
+.leaflet-container.wms-hover,
+.leaflet-container.wms-hover.leaflet-grab,
+.leaflet-container.wms-hover.leaflet-touch {
+    cursor: pointer;
+}
+
+/* WMS feature-info popup — compact Geist card chrome over Leaflet's default popup */
+.gk-popup .leaflet-popup-content-wrapper {
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid var(--color-gray-200);
+    box-shadow: var(--shadow-geist-sm);
+}
+.gk-popup .leaflet-popup-content {
+    margin: 0;
+}
+.gk-popup .leaflet-popup-tip-container {
+    filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.03));
+}
+.gk-popup .leaflet-popup-tip {
+    background: white;
+    box-shadow: none;
+    border: 1px solid var(--color-gray-200);
+    border-top: none;
+    border-left: none;
+}
+.gk-popup .leaflet-popup-close-button {
+    top: 8px !important;
+    right: 8px !important;
+    color: var(--color-gray-300) !important;
+    font: unset !important;
+}
+.gk-popup .leaflet-popup-close-button:hover {
+    color: var(--color-gray-600) !important;
+}

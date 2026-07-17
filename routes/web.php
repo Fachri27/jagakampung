@@ -23,6 +23,7 @@ use App\Http\Middleware\{
 // ponytail: locale prefix (/en, /id) disabled for now — serve index directly.
 // Re-enable by restoring the redirect + setLanguage group below.
 Route::get("/", [IndexController::class, "index"])->name("index");
+Route::get("/wms-feature-info", [IndexController::class, "wmsFeatureInfo"]);
 
 // Route::redirect("/", "id");
 // Route::middleware([setLanguage::class])->group(function () {

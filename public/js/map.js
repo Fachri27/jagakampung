@@ -163,14 +163,14 @@ if (typeof L.bmSwitcher !== "undefined") {
 // WMS LAYERS
 const wmsLayers = {
 
-    kawasanhutan: "simontini:Forest_estate_adm",
-    pbph: "simontini:PBPH_AR_50K_DESEMBER_2023",
+    kawasanhutan: "jagamkampung:KH2025",
+    pbph: "jagamkampung:PBPH_2025",
 };
 
 const layers = {};
 
 for (const [key, layerName] of Object.entries(wmsLayers)) {
-    layers[key] = L.tileLayer.wms("https://aws.simontini.id/geoserver/wms", {
+    layers[key] = L.tileLayer.wms("https://geoserver.jagakampung.id/geoserver/wms", {
         layers: layerName,
         transparent: true,
         format: "image/png",
@@ -182,13 +182,127 @@ Object.keys(layers).forEach((key) => {
     const checkbox = document.getElementById(key);
     if (!checkbox) return;
 
+    const legend = document.getElementById(`${key}-legend`);
+
     checkbox.addEventListener("change", function () {
         if (this.checked) {
             map.addLayer(layers[key]);
         } else {
             map.removeLayer(layers[key]);
         }
+        legend?.classList.toggle("hidden", !this.checked);
+        if (!this.checked) map.getContainer().classList.remove("wms-hover");
     });
+});
+
+// WMS GetFeatureInfo — popup shows only the info for currently active layer(s)
+const wmsInfoFields = {
+    kawasanhutan: "Kawasan",
+    pbph: "namobj",
+};
+
+const wmsLabels = {
+    kawasanhutan: "Kawasan Hutan",
+    pbph: "Konsesi PBPH",
+};
+
+// Layer identity color for the popup swatch (matches each layer's dominant legend hue)
+const wmsColors = {
+    kawasanhutan: "#01ad00",
+    pbph: "#e9c46a",
+};
+
+function activeWmsKeys() {
+    return Object.keys(layers).filter((key) => map.hasLayer(layers[key]));
+}
+
+function wmsQueryGeometry(latlng) {
+    const sw = map.options.crs.project(map.getBounds().getSouthWest());
+    const ne = map.options.crs.project(map.getBounds().getNorthEast());
+    return {
+        point: map.latLngToContainerPoint(latlng),
+        size: map.getSize(),
+        bbox: [sw.x, sw.y, ne.x, ne.y].join(","),
+    };
+}
+
+async function fetchWmsFeatureInfo(key, point, size, bbox, opts = {}) {
+    const params = new URLSearchParams({
+        layers: wmsLayers[key],
+        bbox,
+        width: size.x,
+        height: size.y,
+        x: Math.round(point.x),
+        y: Math.round(point.y),
+    });
+
+    const res = await fetch(`/wms-feature-info?${params}`, { signal: opts.signal });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.features ?? [];
+}
+
+// Hover — probe the active layer(s) (debounced) so the pointer cursor only
+// shows up when the mouse is actually over a feature, not anywhere on the map.
+let hoverAbort = null;
+let hoverTimer = null;
+
+map.on("mousemove", function (e) {
+    if (map.dragging.moving() || !activeWmsKeys().length) return;
+
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(async () => {
+        hoverAbort?.abort();
+        hoverAbort = new AbortController();
+        const { point, size, bbox } = wmsQueryGeometry(e.latlng);
+
+        try {
+            const results = await Promise.all(
+                activeWmsKeys().map((key) => fetchWmsFeatureInfo(key, point, size, bbox, { signal: hoverAbort.signal }))
+            );
+            map.getContainer().classList.toggle("wms-hover", results.some((f) => f.length));
+        } catch {
+            // aborted by a newer hover probe — ignore
+        }
+    }, 120);
+});
+
+map.on("mouseout dragstart", function () {
+    map.getContainer().classList.remove("wms-hover");
+});
+
+map.on("click", async function (e) {
+    const activeKeys = activeWmsKeys();
+    if (!activeKeys.length) return;
+
+    const { point, size, bbox } = wmsQueryGeometry(e.latlng);
+
+    const results = await Promise.all(
+        activeKeys.map((key) => fetchWmsFeatureInfo(key, point, size, bbox).then((features) => ({ key, features })))
+    );
+
+    const sections = results
+        .map(({ key, features }) => {
+            const values = [...new Set(features.map((f) => f.properties?.[wmsInfoFields[key]]).filter(Boolean))];
+            return values.length ? { label: wmsLabels[key], color: wmsColors[key], values } : null;
+        })
+        .filter(Boolean);
+
+    if (!sections.length) return;
+
+    const html = `<div class="px-2.5 py-2 min-w-[130px] space-y-1">${sections
+        .map(
+            (s, i) => `<div class="flex items-start gap-1.5${i > 0 ? " pt-1 border-t border-gray-100" : ""}">
+                <span aria-hidden="true" class="w-1.5 h-1.5 mt-1 rounded-full flex-shrink-0" style="background:${s.color}"></span>
+                <span class="text-[11px] leading-tight text-gray-700">
+                    <span class="font-mono text-[9px] uppercase tracking-wider text-gray-400">${esc(s.label)}</span><br>
+                    <span class="font-medium text-gray-900">${s.values.map(esc).join(", ")}</span>
+                </span>
+            </div>`
+        )
+        .join("")}</div>`;
+
+    L.popup({ className: "gk-popup", maxWidth: 220, autoPanPadding: [20, 20] }).setLatLng(e.latlng).setContent(html).openOn(map);
 });
 
 // LOADING SIDEBAR

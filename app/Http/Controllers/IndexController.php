@@ -4,9 +4,48 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class IndexController extends Controller
 {
+    // Layers the map is allowed to query — keeps this proxy from becoming an open WMS relay
+    private const WMS_LAYERS = [
+        'jagamkampung:KH2025',
+        'jagamkampung:PBPH_2025',
+    ];
+
+    public function wmsFeatureInfo(Request $request)
+    {
+        $data = $request->validate([
+            'layers' => 'required|string|in:' . implode(',', self::WMS_LAYERS),
+            'bbox'   => 'required|regex:/^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/',
+            'width'  => 'required|integer|min:1|max:4000',
+            'height' => 'required|integer|min:1|max:4000',
+            'x'      => 'required|integer|min:0',
+            'y'      => 'required|integer|min:0',
+        ]);
+
+        $response = Http::get('https://geoserver.jagakampung.id/geoserver/wms', [
+            'SERVICE'       => 'WMS',
+            'VERSION'       => '1.1.1',
+            'REQUEST'       => 'GetFeatureInfo',
+            'LAYERS'        => $data['layers'],
+            'QUERY_LAYERS'  => $data['layers'],
+            'STYLES'        => '',
+            'BBOX'          => $data['bbox'],
+            'WIDTH'         => $data['width'],
+            'HEIGHT'        => $data['height'],
+            'X'             => $data['x'],
+            'Y'             => $data['y'],
+            'SRS'           => 'EPSG:3857',
+            'INFO_FORMAT'   => 'application/json',
+            'FEATURE_COUNT' => 5,
+        ]);
+
+        return response($response->body(), $response->status())
+            ->header('Content-Type', 'application/json');
+    }
+
     public function index(){
         $title = 'Jaga Kampung';
 

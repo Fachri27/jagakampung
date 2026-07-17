@@ -223,6 +223,20 @@ class TambahKonflik extends Component
         $this->resetValidation();
     }
 
+    protected $previousImages = [];
+
+    // File inputs only ever report the current picker selection — without this,
+    // picking a 4th image would wipe out the 3 already staged instead of adding to them.
+    public function updatingImages($value)
+    {
+        $this->previousImages = $this->images;
+    }
+
+    public function updatedImages($value)
+    {
+        $this->images = array_merge($this->previousImages, $this->images);
+    }
+
     public function removeImage($index)
     {
         unset($this->images[$index]);

@@ -134,6 +134,49 @@
             </button>
         </div>
 
+        {{-- Layer legends — shown only while their WMS layer is toggled on --}}
+        @php
+            $pbphLegend = [
+                ['label' => 'PBPH-HT (HHK-HT)', 'color' => '#e9c46a'],
+                ['label' => 'PBPH-HA (HHK-HA)', 'color' => '#2a9d8f'],
+                ['label' => 'PBPH-RE', 'color' => '#264653'],
+            ];
+            $kawasanhutanLegend = [
+                ['label' => 'APL', 'color' => '#fef9f1'],
+                ['label' => 'Hutan Lindung (HL)', 'color' => '#01ad00'],
+                ['label' => 'Hutan Produksi (HP)', 'color' => '#ffff00'],
+                ['label' => 'HP Konversi (HPK)', 'color' => '#ff5eff'],
+                ['label' => 'HP Terbatas (HPT)', 'color' => '#8af200'],
+                ['label' => 'KSA/KPA', 'color' => '#ad40ff'],
+                ['label' => 'KSA/KPA Air', 'color' => '#ad40ff'],
+                ['label' => 'Tubuh Air', 'color' => '#0000ff'],
+            ];
+        @endphp
+        <div id="wmsLegends" class="fixed top-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
+            <div id="kawasanhutan-legend" class="hidden pointer-events-auto bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-3 shadow-geist text-[11px] text-gray-600 min-w-40">
+                <p class="font-mono text-[10px] uppercase tracking-wider text-gray-400 mb-2">Kawasan Hutan</p>
+                <div class="flex flex-col gap-1.5">
+                    @foreach ($kawasanhutanLegend as $item)
+                        <span class="flex items-center gap-2">
+                            <span aria-hidden="true" class="w-3 h-3 rounded-sm border border-black/10 flex-shrink-0" style="background:{{ $item['color'] }}"></span>
+                            {{ $item['label'] }}
+                        </span>
+                    @endforeach
+                </div>
+            </div>
+            <div id="pbph-legend" class="hidden pointer-events-auto bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-3 shadow-geist text-[11px] text-gray-600 min-w-40">
+                <p class="font-mono text-[10px] uppercase tracking-wider text-gray-400 mb-2">Konsesi PBPH</p>
+                <div class="flex flex-col gap-1.5">
+                    @foreach ($pbphLegend as $item)
+                        <span class="flex items-center gap-2">
+                            <span aria-hidden="true" class="w-3 h-3 rounded-sm border border-black/10 flex-shrink-0" style="background:{{ $item['color'] }}"></span>
+                            {{ $item['label'] }}
+                        </span>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
         {{-- Mobile backdrop --}}
         <div id="sidebarOverlay"
             class="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-[9998] opacity-0 pointer-events-none transition-opacity duration-300"

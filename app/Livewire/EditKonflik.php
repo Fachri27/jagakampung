@@ -302,6 +302,20 @@ class EditKonflik extends Component
 
     public $newImages = [];
 
+    protected $previousNewImages = [];
+
+    // File inputs only ever report the current picker selection — without this,
+    // picking a 4th image would wipe out the 3 already staged instead of adding to them.
+    public function updatingNewImages($value)
+    {
+        $this->previousNewImages = $this->newImages;
+    }
+
+    public function updatedNewImages($value)
+    {
+        $this->newImages = array_merge($this->previousNewImages, $this->newImages);
+    }
+
     public function removeNewImage($index)
     {
         unset($this->newImages[$index]);
