@@ -143,6 +143,8 @@ class EditKonflik extends Component
         // ponytail: validate new image uploads (no mimes rule existed before)
         $this->validate([
             "newImages.*" => "nullable|image|mimes:jpg,jpeg,png,webp",
+            "lembagas" => "nullable|array",
+            "lembagas.*" => "nullable|string",
         ]);
 
         // ponytail: re-check ownership on every save (mount's 403 only fires on first render; idDB is client-mutable)
@@ -176,13 +178,19 @@ class EditKonflik extends Component
                     "updated_at" => Carbon::now("Asia/Jakarta"),
                 ]);
 
-            // update atau insert lembaga
-            foreach ($this->lembagas as $lembaga) {
+            // update atau insert lembaga (opsional — boleh dikosongkan)
+            foreach ($this->lembagas ?? [] as $lembaga) {
                 DB::table("konflik_lembaga")->updateOrInsert(
                     ["konflik_id" => $this->idDB, "nama" => $lembaga],
                     ["updated_at" => Carbon::now("Asia/Jakarta")],
                 );
             }
+
+            // hapus lembaga yang sudah dihapus dari form (termasuk saat dikosongkan semua)
+            DB::table("konflik_lembaga")
+                ->where("konflik_id", $this->idDB)
+                ->whereNotIn("nama", $this->lembagas ?? [])
+                ->delete();
 
             // Save lampiran
             $newFilenames = [];

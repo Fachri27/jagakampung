@@ -192,6 +192,7 @@ Object.keys(layers).forEach((key) => {
         }
         legend?.classList.toggle("hidden", !this.checked);
         if (!this.checked) map.getContainer().classList.remove("wms-hover");
+        map.closePopup();
     });
 });
 
@@ -210,6 +211,20 @@ const wmsLabels = {
 const wmsColors = {
     kawasanhutan: "#01ad00",
     pbph: "#e9c46a",
+};
+
+// Expand short codes to the same full names shown in the legend (e.g. "HL" → "Hutan Lindung (HL)")
+const wmsValueLabels = {
+    kawasanhutan: {
+        APL: "APL",
+        HL: "Hutan Lindung (HL)",
+        HP: "Hutan Produksi (HP)",
+        HPK: "HP Konversi (HPK)",
+        HPT: "HP Terbatas (HPT)",
+        "KSA/KPA": "KSA/KPA",
+        "KSA/KPA Air": "KSA/KPA Air",
+        "Tubuh Air": "Tubuh Air",
+    },
 };
 
 function activeWmsKeys() {
@@ -281,9 +296,16 @@ map.on("click", async function (e) {
         activeKeys.map((key) => fetchWmsFeatureInfo(key, point, size, bbox).then((features) => ({ key, features })))
     );
 
+    // A layer may have been toggled off while the request was in flight — drop it so a
+    // now-inactive layer's info never shows up in the popup.
+    const stillActive = new Set(activeWmsKeys());
+
     const sections = results
+        .filter(({ key }) => stillActive.has(key))
         .map(({ key, features }) => {
-            const values = [...new Set(features.map((f) => f.properties?.[wmsInfoFields[key]]).filter(Boolean))];
+            const values = [...new Set(features.map((f) => f.properties?.[wmsInfoFields[key]]).filter(Boolean))].map(
+                (v) => wmsValueLabels[key]?.[v] ?? v
+            );
             return values.length ? { label: wmsLabels[key], color: wmsColors[key], values } : null;
         })
         .filter(Boolean);

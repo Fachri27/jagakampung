@@ -132,6 +132,8 @@ class TambahKonflik extends Component
         // ponytail: validate image uploads (no mimes rule existed before)
         $this->validate([
             'images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp',
+            'lembagas' => 'nullable|array',
+            'lembagas.*' => 'nullable|string',
         ]);
 
         if ($this->manualValidation()) {
@@ -158,8 +160,8 @@ class TambahKonflik extends Component
                 'created_at' => Carbon::now('Asia/Jakarta'),
             ]);
 
-            // Simpan data lembaga terkait konflik
-            foreach ($this->lembagas as $lembaga) {
+            // Simpan data lembaga terkait konflik (opsional — boleh kosong)
+            foreach ($this->lembagas ?? [] as $lembaga) {
                 DB::table('konflik_lembaga')->insert([
                     'konflik_id' => $konflikId,
                     'nama' => $lembaga,
