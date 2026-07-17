@@ -755,7 +755,7 @@ pruneCluster.PrepareLeafletMarker = function (leafletMarker, data) {
     }
 
     leafletMarker._konflikClickBound = function () {
-        console.log("Marker klik, id:", id);
+        // console.log("Marker klik, id:", id);
         openSidebar();
         showLoading();
         updateSelectedKonflik(id);

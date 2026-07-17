@@ -57,31 +57,8 @@ class LocalServiceController extends Controller
     public function kasusDetail(Request $request, $id){
         $isAdmin = (int) session('role_id') === 0;
         $isPublic = ! $isAdmin;
-        $statusFilter = $isPublic ? " AND artikel.status = 'publish'" : '';
-        $data = DB::table('konflik')->select('konflik.*',
-            DB::raw('(SELECT JSON_ARRAYAGG(nama) FROM konflik_gambar WHERE konflik_gambar.konflik_id = konflik.id) as gambar'),
-            DB::raw('(SELECT JSON_ARRAYAGG(JSON_OBJECT("nama", nama, "file", file)) FROM konflik_lampiran WHERE konflik_lampiran.konflik_id = konflik.id) as lampiran'),
-            DB::raw('(SELECT JSON_ARRAYAGG(nama) FROM konflik_lembaga WHERE konflik_lembaga.konflik_id = konflik.id) as lembaga'),
-            DB::raw('(SELECT JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            "id", id,
-                            "judul_id", judul_id,
-                            "judul_en", judul_en,
-                            "slug", slug,
-                            "gambar", gambar,
-                            "deskripsi_id", deskripsi_id,
-                            "deskripsi_en", deskripsi_en,
-                            "tanggal_publish", tanggal_publish,
-                            "sumber", sumber,
-                            "status", status
-                        )
-                    )
-                    FROM artikel
-                    WHERE artikel.konflik_id = konflik.id' . $statusFilter . '
-                ) as artikel')
-        )
-        ->where('konflik.id', $id)
-        ->first();
+
+        $data = DB::table('konflik')->where('konflik.id', $id)->first();
 
         if (! $data) {
             return response()->json(['status' => 'error', 'message' => 'Not found'], 404);
@@ -90,6 +67,21 @@ class LocalServiceController extends Controller
         if ($data->status === 'draft' && ! $isAdmin && (int) ($data->user_id ?? 0) !== (int) session('id')) {
             return response()->json(['status' => 'error', 'message' => 'Not found'], 404);
         }
+
+        // ponytail: portable Query Builder calls instead of MySQL-only JSON_ARRAYAGG/JSON_OBJECT
+        // raw SQL — production runs Postgres, which doesn't support that syntax
+        $gambar = DB::table('konflik_gambar')->where('konflik_id', $id)->pluck('nama');
+        $lampiran = DB::table('konflik_lampiran')->where('konflik_id', $id)->get(['nama', 'file']);
+        $lembaga = DB::table('konflik_lembaga')->where('konflik_id', $id)->pluck('nama');
+
+        $artikelQuery = DB::table('artikel')->where('konflik_id', $id);
+        if ($isPublic) {
+            $artikelQuery->where('status', 'publish');
+        }
+        $artikel = $artikelQuery->get([
+            'id', 'judul_id', 'judul_en', 'slug', 'gambar',
+            'deskripsi_id', 'deskripsi_en', 'tanggal_publish', 'sumber', 'status',
+        ]);
 
         return response()->json([
             'status' => 'success',
@@ -116,12 +108,12 @@ class LocalServiceController extends Controller
                     'konflik' => $data->deskripsikonflik,
                     'perjuangan' => $data->deskripsiperjuangan
                 ],
-                'lembaga' => json_decode($data->lembaga),
+                'lembaga' => $lembaga,
                 'media' => [
-                    'gambar' => json_decode($data->gambar),
-                    'lampiran' => json_decode($data->lampiran),
+                    'gambar' => $gambar,
+                    'lampiran' => $lampiran,
                 ],
-                'artikel' => json_decode($data->artikel),
+                'artikel' => $artikel,
                 'meta' => [
                     'created_at' => $data->created_at,
                     'updated_at' => $data->updated_at

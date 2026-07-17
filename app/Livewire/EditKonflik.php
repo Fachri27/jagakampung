@@ -39,21 +39,7 @@ class EditKonflik extends Component
         // dd($idDB);
         $this->idDB = $idDB;
 
-        $data = DB::table("konflik")
-            ->select(
-                "konflik.*",
-                DB::raw(
-                    "(SELECT JSON_ARRAYAGG(nama) FROM konflik_gambar WHERE konflik_gambar.konflik_id = konflik.id) as gambar",
-                ),
-                DB::raw(
-                    '(SELECT JSON_ARRAYAGG(JSON_OBJECT("nama", nama, "file", file)) FROM konflik_lampiran WHERE konflik_lampiran.konflik_id = konflik.id) as lampiran',
-                ),
-                DB::raw(
-                    "(SELECT JSON_ARRAYAGG(nama) FROM konflik_lembaga WHERE konflik_lembaga.konflik_id = konflik.id) as lembaga",
-                ),
-            )
-            ->where("konflik.id", $idDB)
-            ->first();
+        $data = DB::table("konflik")->where("konflik.id", $idDB)->first();
 
         // dd($data);
         // ponytail: IDOR guard — only the owner or an admin may edit this konflik
@@ -76,9 +62,15 @@ class EditKonflik extends Component
         $this->selectedStatus = $data->status;
         $this->selectedGroup = $data->group;
         $this->selectedPerusahaan = $data->perusahaan;
-        $this->lembagas = json_decode($data->lembaga, true) ?? [];
-        $this->lampirans = json_decode($data->lampiran, true) ?? [];
-        $this->images = json_decode($data->gambar, true) ?? [];
+        // ponytail: portable Query Builder calls instead of MySQL-only JSON_ARRAYAGG/JSON_OBJECT
+        // raw SQL — production runs Postgres, which doesn't support that syntax
+        $this->lembagas = DB::table("konflik_lembaga")->where("konflik_id", $idDB)->pluck("nama")->toArray();
+        $this->lampirans = DB::table("konflik_lampiran")
+            ->where("konflik_id", $idDB)
+            ->get(["nama", "file"])
+            ->map(fn ($row) => (array) $row)
+            ->toArray();
+        $this->images = DB::table("konflik_gambar")->where("konflik_id", $idDB)->pluck("nama")->toArray();
         $this->chooseRegion = $data->desa;
 
         $this->region = "{$this->provinsi} | {$this->kabkota} | {$this->kecamatan} | {$this->desa} ";
