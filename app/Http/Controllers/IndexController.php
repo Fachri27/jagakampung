@@ -58,11 +58,12 @@ class IndexController extends Controller
             'potensi'  => (clone $base)->where('status', 'potensi')->count(),
             'luas'     => (clone $base)->get()->sum(fn ($r) => round((float) $r->luas)),
             'kk'       => (int) (clone $base)->sum('kk'),
+            'jiwa'     => (int) (clone $base)->sum('jiwa'),
             'provinsi' => (clone $base)->distinct('provinsi')->count('provinsi'),
         ];
 
         $konfliks = (clone $base)
-            ->select('id', 'desa', 'kecamatan', 'kabkota', 'provinsi', 'status', 'luas', 'kk', 'lat', 'long')
+            ->select('id', 'desa', 'kecamatan', 'kabkota', 'provinsi', 'status', 'luas', 'kk', 'jiwa', 'lat', 'long')
             ->orderByRaw("CASE status WHEN 'aktif' THEN 0 WHEN 'potensi' THEN 1 ELSE 2 END")
             ->orderByDesc('luas')
             ->get();
