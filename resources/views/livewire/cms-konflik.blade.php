@@ -11,12 +11,11 @@
         Tambah Konflik
     </a>
 
-    {{-- MAP VIEW --}}
-    <div x-show="view === 'map'" x-cloak
-        x-effect="if (view === 'map' && window.__map) { setTimeout(() => window.__map.invalidateSize(), 50) }">
+    {{-- MAP VIEW — always mounted; table opens as a popup over it --}}
+    <div>
 
-    {{-- View Toggle (on map) --}}
-    <div class="fixed z-20 top-20 left-1/2 -translate-x-1/2 flex items-center bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-geist select-none">
+    {{-- View Toggle (floating top-right on map) --}}
+    <div class="fixed z-20 top-30 right-8 flex items-center bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-geist select-none">
         <button wire:click="$set('viewMode', 'map')" @click="view = 'map'"
             :class="view === 'map' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer">
@@ -119,37 +118,45 @@
 
     </div> {{-- end MAP VIEW --}}
 
-    {{-- TABLE VIEW --}}
-    <div x-show="view === 'table'" x-cloak class="max-w-7xl mx-auto px-4 py-8">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h1 class="text-lg font-semibold text-gray-900">Daftar Konflik</h1>
-                <p class="text-sm text-gray-500 mt-0.5">Kelola data konflik agraria</p>
+    {{-- TABLE VIEW — popup modal over the map --}}
+    <div x-show="view === 'table'" x-cloak
+         x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+         wire:click="$set('viewMode', 'map')" @click.self="view = 'map'">
+        <div class="relative bg-white rounded-2xl shadow-geist w-full max-w-6xl max-h-[85vh] flex flex-col overflow-hidden"
+             @click.stop>
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div>
+                    <h1 class="text-lg font-semibold text-gray-900">Daftar Konflik</h1>
+                    <p class="text-sm text-gray-500 mt-0.5">Kelola data konflik agraria</p>
+                </div>
+                <button wire:click="$set('viewMode', 'map')" @click="view = 'map'"
+                    class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition cursor-pointer"
+                    aria-label="Tutup">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
             </div>
-            <button wire:click="$set('viewMode', 'map')" @click="view = 'map'"
-                class="gk-btn-secondary gk-btn-sm">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                Lihat Peta
-            </button>
-        </div>
 
-        <div class="flex flex-wrap items-center gap-3 mb-4">
-            <div class="flex-1 sm:flex-none">
-                <input wire:model.live.debounce.300ms="search" type="search" placeholder="Cari desa, kecamatan, grup…" class="gk-input sm:w-72">
+            <div class="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-gray-100">
+                <div class="flex-1 sm:flex-none">
+                    <input wire:model.live.debounce.300ms="search" type="search" placeholder="Cari desa, kecamatan, grup…" class="gk-input sm:w-72">
+                </div>
+                <div>
+                    <select wire:model.live="filterStatus" class="gk-select sm:w-40">
+                        <option value="">Semua Status</option>
+                        <option value="aktif">Aktif</option>
+                        <option value="potensi">Potensi</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                </div>
             </div>
-            <div>
-                <select wire:model.live="filterStatus" class="gk-select sm:w-40">
-                    <option value="">Semua Status</option>
-                    <option value="aktif">Aktif</option>
-                    <option value="potensi">Potensi</option>
-                    <option value="draft">Draft</option>
-                </select>
-            </div>
-        </div>
 
-        <div class="gk-card overflow-hidden">
+            <div class="overflow-y-auto p-5">
+            <div class="gk-card overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
@@ -217,6 +224,8 @@
                 {{ $databases->links() }}
             </div>
         @endif
+            </div>
+        </div>
     </div>
 
     </div> {{-- end x-data --}}

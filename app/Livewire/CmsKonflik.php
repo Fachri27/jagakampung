@@ -30,13 +30,16 @@ class CmsKonflik extends Component
         }
 
         if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('desa', 'ILIKE', '%' . $this->search . '%')
-                  ->orWhere('kecamatan', 'ILIKE', '%' . $this->search . '%')
-                  ->orWhere('kabkota', 'ILIKE', '%' . $this->search . '%')
-                  ->orWhere('provinsi', 'ILIKE', '%' . $this->search . '%')
-                  ->orWhere('group', 'ILIKE', '%' . $this->search . '%')
-                  ->orWhere('perusahaan', 'ILIKE', '%' . $this->search . '%');
+            // ILIKE (Postgres) vs LIKE (MySQL) — MySQL's default collation is case-insensitive.
+            $like = DB::getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
+            $term = '%' . $this->search . '%';
+            $query->where(function ($q) use ($like, $term) {
+                $q->where('desa', $like, $term)
+                  ->orWhere('kecamatan', $like, $term)
+                  ->orWhere('kabkota', $like, $term)
+                  ->orWhere('provinsi', $like, $term)
+                  ->orWhere('group', $like, $term)
+                  ->orWhere('perusahaan', $like, $term);
             });
         }
 
