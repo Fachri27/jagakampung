@@ -256,7 +256,7 @@
                         <input type="file" wire:model="newImages" multiple accept="image/*" class="hidden">
                     </label>
 
-                    <div wire:loading wire:target="newImages" class="flex items-center gap-2 mt-3 text-sm text-gray-500">
+                    <div wire:loading.flex wire:target="newImages" class="flex items-center gap-2 mt-3 text-sm text-gray-500">
                         <svg class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -293,7 +293,9 @@
             <a href="/cms/konflik" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Batal</a>
             <button wire:click="storeDatabase" wire:loading.attr="disabled" class="gk-btn-primary px-8">
                 <span wire:loading.remove wire:target="storeDatabase">Simpan Perubahan</span>
-                <span wire:loading wire:target="storeDatabase" class="inline-flex items-center gap-2">
+                {{-- ponytail: .inline-flex modifier so Livewire sets display:inline-flex instead of its default inline-block,
+                    which was clobbering the class and breaking the spinner/text centering --}}
+                <span wire:loading.inline-flex wire:target="storeDatabase" class="inline-flex items-center gap-2">
                     <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
